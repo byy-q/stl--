@@ -187,3 +187,148 @@ void remove(int num)
         cur ->val = tempVal;
     }
 }
+/*AVL树节点*/
+struct AVLnode
+{
+    int val;//节点值
+    int height = 0;//节点高度
+    AVLnode *left;
+    AVLnode *right;
+    AVLnode() = default;
+    explicit AVLnode(int x):val(x){}
+};
+//获取节点高度
+int height(AVLnode *node)
+{
+    return (node == nullptr)? -1 : node ->height;
+}
+//更新节点高度
+void updateHeight(AVLnode *node)
+{
+    node ->height = std::max(height(node ->left),height(node->right)) +1;
+}
+/*获取平衡因子*/
+int BalanceFactor(AVLnode *node)
+{
+    if(node == nullptr)
+    return 0;
+    return height(node ->left) - height(node ->right);
+}
+/*右旋操作*/
+AVLnode* RightRotate(AVLnode* node)
+{
+    AVLnode *child = node ->left;
+    AVLnode *grandchild = child ->right;
+    //以child为原点，将node 向右旋转
+    child ->right = node;
+    node ->left =grandchild;
+    updateHeight(node);
+    updateHeight(child);
+    return child;
+}
+/*左旋操作*/
+AVLnode* LeftRotate(AVLnode *node)
+{
+    AVLnode *child = node ->right;
+    AVLnode *grandchild = child ->left;
+    child ->left = node;
+    node ->right= grandchild;
+    updateHeight(node);
+    updateHeight(child);
+    //返回子树根节点
+    return child;
+}
+/*执行旋转操作，使该子树重新平衡*/
+AVLnode* rotate(AVLnode *node)
+{
+    int _balanceFactor = BalanceFactor(node);
+    //左偏树
+    if(_balanceFactor > 1)
+    {
+        if(BalanceFactor(node ->left) >= 0)
+        return RightRotate(node);
+        else//先左旋再右旋
+        {
+            node ->left = LeftRotate(node ->left);
+            return RightRotate(node);
+        }
+    }
+    //右偏树
+    else if(_balanceFactor < -1)
+    {
+        if(BalanceFactor(node ->right) <=0)
+        return LeftRotate(node);
+        else//先右旋再左旋
+        {
+            node ->right = RightRotate(node ->right);
+            return LeftRotate(node);
+        }
+    }
+    return node;
+}
+AVLnode *Root;
+void insert(int val)
+{
+    Root = insertHelper(Root,val);
+}
+/*递归插入节点，辅助方法*/
+AVLnode * insertHelper(AVLnode *node,int val)
+{
+    if(node == nullptr)
+    return new AVLnode(val);
+    /*查找插入位置并插入节点*/
+    if(node ->val >val)
+    node ->left = insertHelper(node ->left,val);
+    else if(node ->val < val)
+    node ->right = insertHelper(node ->right,val);
+    else 
+    return node;//重复节点不插入
+    updateHeight(node);
+    //执行旋转操作，使该子树重新平衡
+    node = rotate(node);
+    return node;
+}
+/* 删除节点 */
+void remove(int val) {
+    Root = removeHelper(Root, val);
+}
+
+/* 递归删除节点（辅助方法） */
+AVLnode *removeHelper(AVLnode *node, int val) {
+    if (node == nullptr)
+        return nullptr;
+    /* 1. 查找节点并删除 */
+    if (val < node->val)
+        node->left = removeHelper(node->left, val);
+    else if (val > node->val)
+        node->right = removeHelper(node->right, val);
+    else {
+        if (node->left == nullptr || node->right == nullptr) {
+            AVLnode *child = node->left != nullptr ? node->left : node->right;
+            // 子节点数量 = 0 ，直接删除 node 并返回
+            if (child == nullptr) {
+                delete node;
+                return nullptr;
+            }
+            // 子节点数量 = 1 ，直接删除 node
+            else {
+                delete node;
+                node = child;
+            }
+        } else {
+            // 子节点数量 = 2 ，则将中序遍历的下个节点删除，并用该节点替换当前节点
+            AVLnode *temp = node->right;
+            while (temp->left != nullptr) {
+                temp = temp->left;
+            }
+            int tempVal = temp->val;
+            node->right = removeHelper(node->right, temp->val);
+            node->val = tempVal;
+        }
+    }
+    updateHeight(node); // 更新节点高度
+    /* 2. 执行旋转操作，使该子树重新恢复平衡 */
+    node = rotate(node);
+    // 返回子树的根节点
+    return node;
+}
